@@ -1,38 +1,22 @@
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
-  Modal,
-  Image,
-} from "react-native";
+"use dom";
+
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import L from "leaflet";
+import { Modal, Text, Image, Button } from "react-native";
 
-// 🔴 **CSS Rode Marker**
-const redMarkerIcon = new L.DivIcon({
-  className: "custom-marker",
-  html: '<div class="red-marker"></div>',
+//  **Aangepaste rode marker voor UFO sightings**
+const redMarker = new L.Icon({
+  iconUrl:
+    "https://cdn1.iconfinder.com/data/icons/color-bold-style/21/14_2-512.png",
   iconSize: [30, 30],
-  iconAnchor: [15, 30],
+  iconAnchor: [10, 10],
 });
 
-const redMarkerCSS = `
-  .red-marker {
-    background-color: red;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
-  }
-`;
-
-document.head.insertAdjacentHTML("beforeend", `<style>${redMarkerCSS}</style>`);
-
+//  **Definieer interface voor UFO sightings**
 interface Location {
   latitude: number;
   longitude: number;
@@ -54,7 +38,7 @@ export default function TabOneScreen() {
   const [activeSighting, setActiveSighting] = useState<Sighting | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // 🚀 **API ophalen bij laden van component**
+  // **API ophalen bij laden van component**
   useEffect(() => {
     axios
       .get<Sighting[]>("https://sampleapis.assimilate.be/ufo/sightings")
@@ -79,92 +63,79 @@ export default function TabOneScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* De kaart */}
+    <View style={{ flex: 1 }}>
       <MapContainer
         center={{ lat: 51.230175, lng: 4.41625 }}
         zoom={3}
-        scrollWheelZoom={true}
+        scrollWheelZoom={false}
         style={{
           width: "100%",
-          height: "50%", // De kaart neemt de bovenste helft in
+          height: "100%",
+          position: "absolute",
+          top: 0,
+          left: 0,
         }}
         attributionControl={false}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+        {/*  Markers voor UFO sightings */}
         {sightings.map((sighting) => (
           <Marker
             key={sighting.id}
             position={[sighting.location.latitude, sighting.location.longitude]}
-            icon={redMarkerIcon}
+            icon={redMarker}
             eventHandlers={{
               click: () => handleSightingClick(sighting), // markerklik handler
             }}
           />
         ))}
       </MapContainer>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{activeSighting?.witnessName}</Text>
+            <Text style={styles.modalLabel}>Description:</Text>
+            <Text>{activeSighting?.description}</Text>
+            <Text style={styles.modalLabel}>Status:</Text>
+            <Text>{activeSighting?.status}</Text>
+            <Text style={styles.modalLabel}>Date and Time:</Text>
+            <Text>{activeSighting?.dateTime}</Text>
+            <Text style={styles.modalLabel}>Contact:</Text>
+            <Text>{activeSighting?.witnessContact}</Text>
 
-      {/* Lijst van sightings */}
-      <FlatList
-        data={sightings}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.sightingItem}
-            onPress={() => handleSightingClick(item)} // Klikbare sighting
-          >
-            <Text style={styles.sightingTitle}>{item.witnessName}</Text>
-            <Text>{item.description}</Text>
-            <Text>{item.dateTime}</Text>
-          </TouchableOpacity>
-        )}
-        style={styles.sightingsList}
-      />
-
-      {/* Modaal voor het tonen van details van de sighting */}
-      {activeSighting && (
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={closeModal}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>
-                {activeSighting.witnessName}
-              </Text>
-              <Text style={styles.modalLabel}>Description:</Text>
-              <Text>{activeSighting.description}</Text>
-              <Text style={styles.modalLabel}>Status:</Text>
-              <Text>{activeSighting.status}</Text>
-              <Text style={styles.modalLabel}>Date and Time:</Text>
-              <Text>{activeSighting.dateTime}</Text>
-              <Text style={styles.modalLabel}>Contact:</Text>
-              <Text>{activeSighting.witnessContact}</Text>
-              <Text style={styles.modalLabel}>Picture:</Text>
+            {activeSighting?.picture ? (
               <Image
                 source={{ uri: activeSighting.picture }}
                 style={styles.modalImage}
               />
-              <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+            ) : (
+              <Text style={{ fontStyle: "italic", color: "gray" }}>
+                No image available
+              </Text>
+            )}
+
+            <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      )}
+        </View>
+      </Modal>
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "white",
   },
   sightingsList: {
     padding: 10,
-    backgroundColor: "white", // Zorgt ervoor dat de lijst een witte achtergrond heeft
   },
   sightingItem: {
     backgroundColor: "#f9f9f9",
@@ -182,7 +153,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Donkere achtergrond
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
     backgroundColor: "white",
@@ -190,7 +161,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: "80%",
     maxHeight: "80%",
-    overflow: "scroll",
   },
   modalTitle: {
     fontSize: 18,
