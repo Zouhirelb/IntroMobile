@@ -66,7 +66,7 @@ export default function TabOneScreen() {
     <View style={{ flex: 1 }}>
       <MapContainer
         center={{ lat: 51.230175, lng: 4.41625 }}
-        zoom={3}
+        zoom={5}
         scrollWheelZoom={false}
         style={{
           width: "100%",
