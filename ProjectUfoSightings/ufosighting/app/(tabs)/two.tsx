@@ -1,19 +1,16 @@
-"use dom";
-
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   Modal,
+  TouchableOpacity,
   Image,
 } from "react-native";
-import "leaflet/dist/leaflet.css";
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// 🌍 **Definieer interface voor UFO sightings**
+// Defining the Sighting and Location interfaces
 interface Location {
   latitude: number;
   longitude: number;
@@ -35,25 +32,26 @@ export default function TabTwoScreen() {
   const [activeSighting, setActiveSighting] = useState<Sighting | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // 🚀 **API ophalen bij laden van component**
   useEffect(() => {
-    axios
-      .get<Sighting[]>("https://sampleapis.assimilate.be/ufo/sightings")
-      .then((response) => {
-        setSightings(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching UFO sightings:", error);
-      });
+    // Load UFO sightings from AsyncStorage
+    loadSightings();
   }, []);
 
-  // Functie voor het openen van de modaal
+  const loadSightings = async () => {
+    try {
+      const storedSightings = await AsyncStorage.getItem("sightings");
+      const storedData = storedSightings ? JSON.parse(storedSightings) : [];
+      setSightings(storedData);
+    } catch (error) {
+      console.error("Error loading sightings from AsyncStorage:", error);
+    }
+  };
+
   const handleSightingClick = (sighting: Sighting) => {
     setActiveSighting(sighting);
     setModalVisible(true);
   };
 
-  // Sluit de modaal
   const closeModal = () => {
     setModalVisible(false);
     setActiveSighting(null);
@@ -77,7 +75,7 @@ export default function TabTwoScreen() {
         style={styles.sightingsList}
       />
 
-      {/* Modaal voor details */}
+      {/* Modal for displaying details of the clicked sighting */}
       {activeSighting && (
         <Modal
           animationType="slide"
